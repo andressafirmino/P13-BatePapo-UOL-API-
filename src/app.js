@@ -17,7 +17,7 @@ mongoClient.connect()
     .then(() => db = mongoClient.db())
     .catch(e => console.log(e.message));
 
-app.post("/participants", async(req, res) => {
+app.post("/participants", async (req, res) => {
     const { name } = req.body;
     //if (!name || typeof (name) !== "string") {return res.sendStatus(422);}
 
@@ -32,23 +32,28 @@ app.post("/participants", async(req, res) => {
         return res.status(422).send(errors);
     }
 
-    const user = await db.collection("participants").findOne({ name: name })
-    if(user) {
-        return res.sendStatus(409);
-    }
 
-    await db.collection("participants").insertOne({
-        name: name,
-        lastStatus: Date.now()
-    })
-    await db.collection("message").insertOne({
+    try {
+        const user = await db.collection("participants").findOne({ name: name })
+        if (user) {
+            return res.sendStatus(409);
+        }
+        await db.collection("participants").insertOne({
+            name: name,
+            lastStatus: Date.now()
+        })
+        await db.collection("messages").insertOne({
             from: name,
             to: 'Todos',
             text: 'entra na sala...',
             type: 'status',
             time: dayjs().format('HH:mm:ss')
-    })
-    res.sendStatus(201);
+        })
+        res.sendStatus(201);
+    } catch (e) {
+        res.status(500).send(e.message);
+    }
+
 })
 app.get("/participants", (req, res) => {
 
