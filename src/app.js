@@ -95,9 +95,19 @@ app.post("/messages", async (req, res) => {
 
 app.get("/messages", async(req, res) => {
     const {user} = req.headers;
-
+    const {limit} = req.query;    
+    const limitSchema = joi.object({
+        limit: joi.number().min(1)        
+    })
+    const validateLimit = limitSchema.validate((req.query), { abortEarly: false });
+    console.log(validateLimit);
+    if(validateLimit.error) {
+        const errors = validateLimit.error.details.map(detail => detail.message);
+        return res.status(422).send(errors);
+    }
     try {
         const messages = await db.collection("messages").find({ $or: [ { to: "Todos" }, { to: user }, {from: user} ] }).toArray();
+        //messages.inverse()
         res.send(messages);
 
     } catch(e) {
