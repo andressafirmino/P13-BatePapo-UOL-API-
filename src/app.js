@@ -97,8 +97,8 @@ app.get("/messages", async(req, res) => {
     const {user} = req.headers;
 
     try {
-        const messages = await db.messages.find().toArray();
-        db.inventory.find( { $or: [ { quantity: { $lt: 20 } }, { price: 10 } ] } )
+        const messages = await db.collection("messages").find({ $or: [ { to: "Todos" }, { to: user }, {from: user} ] }).toArray();
+        res.send(messages);
 
     } catch(e) {
         res.status(500).send(e.message);
