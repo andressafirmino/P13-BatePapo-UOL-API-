@@ -107,8 +107,8 @@ app.get("/messages", async(req, res) => {
     }
     try {
         const messages = await db.collection("messages").find({ $or: [ { to: "Todos" }, { to: user }, {from: user} ] }).toArray();
-        //messages.inverse()
-        res.send(messages);
+        let lastMessages = [...messages.slice(-limit)];
+        res.send(lastMessages);
 
     } catch(e) {
         res.status(500).send(e.message);
