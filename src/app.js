@@ -61,9 +61,27 @@ app.get("/participants", (req, res) => {
             return res.status(500).send(error.message);
         })
 })
+setInterval(async () => {
+    let status = Date.now() - 10000;
+    let users = await db.collection("participants").find().toArray();
+    await db.collection("participants").deleteMany({ lastStatus: { $lt: status } });
+    let deleteUser = await db.collection("participants").find().toArray();
 
+    for (let j = 0; j < users.length; j++) {
+        if (!deleteUser.includes(users[j])) {
+            await db.collection("messages").insertOne({
+                from: users[j].name,
+                to: 'Todos',
+                text: 'sai na sala...',
+                type: 'status',
+                time: dayjs().format('HH:mm:ss')
+            })
+        }
+    }
+    console.log(deleteUser);
+}, 15000);
 app.post("/messages", async (req, res) => {
-    const { user } = req.headers;    
+    const { user } = req.headers;
     const { to, text, type } = req.body;
     const messageSchema = joi.object({
         to: joi.string().min(1).required(),
@@ -71,15 +89,15 @@ app.post("/messages", async (req, res) => {
         type: joi.valid('message', 'private_message').required()
     })
     const validateMessage = messageSchema.validate(req.body, { abortEarly: false });
-    if(validateMessage.error) {
+    if (validateMessage.error) {
         const errors = validateMessage.error.details.map(detail => detail.message);
         return res.status(422).send(errors);
     }
     try {
-        const from = await db.collection("participants").findOne({name: user});
-        if(!from) {
+        const from = await db.collection("participants").findOne({ name: user });
+        if (!from) {
             return res.sendStatus(422);
-        }  
+        }
         await db.collection("messages").insertOne({
             from: from.name,
             to: to,
@@ -87,57 +105,54 @@ app.post("/messages", async (req, res) => {
             type: type,
             time: dayjs().format('HH:mm:ss')
         })
-        res.sendStatus(201);     
-    } catch(e) {
+        res.sendStatus(201);
+    } catch (e) {
         res.status(500).send(e.message);
-    }    
+    }
 })
 
-app.get("/messages", async(req, res) => {
-    const {user} = req.headers;
-    const {limit} = req.query;    
+app.get("/messages", async (req, res) => {
+    const { user } = req.headers;
+    const { limit } = req.query;
     const limitSchema = joi.object({
-        limit: joi.number().min(1)        
+        limit: joi.number().min(1)
     })
     const validateLimit = limitSchema.validate((req.query), { abortEarly: false });
-    console.log(validateLimit);
-    if(validateLimit.error) {
+    if (validateLimit.error) {
         const errors = validateLimit.error.details.map(detail => detail.message);
         return res.status(422).send(errors);
     }
     try {
-        const messages = await db.collection("messages").find({ $or: [ { to: "Todos" }, { to: user }, {from: user} ] }).toArray();
+        const messages = await db.collection("messages").find({ $or: [{ to: "Todos" }, { to: user }, { from: user }] }).toArray();
         let lastMessages = [...messages.slice(-limit)];
         res.send(lastMessages);
 
-    } catch(e) {
+    } catch (e) {
         res.status(500).send(e.message);
     }
-    
-        
+
+
 })
 
-app.post("/status", async(req, res) => {
+app.post("/status", async (req, res) => {
     const { user } = req.headers;
     if (!user) {
         return res.sendStatus(404);
     }
     try {
-        const from = await db.collection("participants").findOne({name: user});
-        if(!from) {
+        const from = await db.collection("participants").findOne({ name: user });
+        if (!from) {
             return res.sendStatus(404);
-        } 
+        }
         await db.collection("participants").updateOne(
-            {name: user},
-            {$set: {lastStatus: Date.now()}}
+            { name: user },
+            { $set: { lastStatus: Date.now() } }
         )
         res.sendStatus(200);
-    } catch(e) {
+    } catch (e) {
         res.status(500).send(e.message);
-    } 
+    }
 })
-
-
 
 
 
