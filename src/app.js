@@ -42,7 +42,7 @@ app.post("/participants", async (req, res) => {
             from: name,
             to: 'Todos',
             text: 'entra na sala...',
-            type: 'message',
+            type: 'status',
             time: dayjs().format('HH:mm:ss')
         })
         res.sendStatus(201);
@@ -93,14 +93,18 @@ app.post("/messages", async (req, res) => {
     }    
 })
 
-app.get("/messages", (req, res) => {
-    db.collection("messages").find().toArray()
-        .then(data => {
-            return res.send(data)
-        })
-        .catch(error => {
-            return res.status(500).send(error.message);
-        })
+app.get("/messages", async(req, res) => {
+    const {user} = req.headers;
+
+    try {
+        const messages = await db.messages.find().toArray();
+        db.inventory.find( { $or: [ { quantity: { $lt: 20 } }, { price: 10 } ] } )
+
+    } catch(e) {
+        res.status(500).send(e.message);
+    }
+    
+        
 })
 
 app.post("/status", (req, res) => {
