@@ -161,7 +161,6 @@ app.delete("/messages/:id", async (req, res) => {
 
     try {
         const userRequest = await db.collection("messages").findOne({ _id: new ObjectId(id) });
-        console.log(userRequest);
         if(userRequest.from !== user) {
             return res.sendStatus(401);
         }
@@ -169,11 +168,46 @@ app.delete("/messages/:id", async (req, res) => {
         if (counter.deletedCount === 0) {
             return res.sendStatus(404);
         }
+        res.sendStatus(200);
     } catch (e) {
         res.status(500).send(e.message);
     }
 })
 
+app.put("/messages/:id", async (req, res) => {
+    const {user} = req.headers;
+    const {id} = req.params;
+    const {to, text, type} = req.body;
+    const messageSchema = joi.object({
+        to: joi.string().min(1),
+        text: joi.string().min(1),
+        type: joi.valid('message', 'private_message')
+    })
+    const validateMessage = messageSchema.validate(req.body, { abortEarly: false });
+    if (validateMessage.error) {
+        const errors = validateMessage.error.details.map(detail => detail.message);
+        return res.status(422).send(errors);
+    }
+    try {
+        const userRequest = await db.collection("messages").findOne({ _id: new ObjectId(id) });
+        if(userRequest.from !== user) {
+            return res.sendStatus(401);
+        }
+        
+        await db.collection("messages").updateOne(
+            {_id: new ObjectId(id)},
+            {
+            from: user,
+            to: to,
+            text: text,
+            type: type,
+            time: dayjs().format('HH:mm:ss')
+        })
+        res.sendStatus(201);
+    } catch (e) {
+        res.status(500).send(e.message);
+    }
+})
 
 const PORT = 5000;
 app.listen(PORT, () => console.log(`O servidor está na porta ${PORT}`));
