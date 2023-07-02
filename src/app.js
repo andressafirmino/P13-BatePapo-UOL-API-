@@ -21,27 +21,27 @@ mongoClient.connect()
 
 app.post("/participants", async (req, res) => {
     const { name } = req.body;
+    const nameSanit = stripHtml(name).result;
     const participantsSchema = joi.object({
-        name: joi.string().min(1).required()
+        nameSanit: joi.string().min(1).required()
     })
     const validateParticipants = participantsSchema.validate(req.body, { abortEarly: false });
-    const userSanit = stripHtml(name).result;
+    
     if (validateParticipants.error) {
         const errors = validateParticipants.error.details.map(detail => detail.message);
         return res.status(422).send(errors);
     }
-
     try {
-        const user = await db.collection("participants").findOne({ name: userSanit });
+        const user = await db.collection("participants").findOne({ name: nameSanit });
         if (user) {
             return res.sendStatus(409);
         }
         await db.collection("participants").insertOne({
-            name: userSanit,
+            name: nameSanit,
             lastStatus: Date.now()
         })
         await db.collection("messages").insertOne({
-            from: userSanit,
+            from: nameSanit,
             to: 'Todos',
             text: 'entra na sala...',
             type: 'status',
@@ -72,9 +72,9 @@ app.post("/messages", async (req, res) => {
     const textSanit = stripHtml(text).result;
     const typeSanit = stripHtml(type).result;
     const messageSchema = joi.object({
-        to: joi.string().min(1).required(),
-        text: joi.string().min(1).required(),
-        type: joi.valid('message', 'private_message').required()
+        toSanit: joi.string().min(1).required(),
+        textSanit: joi.string().min(1).required(),
+        typeSanit: joi.valid('message', 'private_message').required()
     })
     
     const validateMessage = messageSchema.validate(req.body, { abortEarly: false });
@@ -189,9 +189,9 @@ app.put("/messages/:id", async (req, res) => {
     const textSanit = stripHtml(text).result;
     const typeSanit = stripHtml(type).result;
     const messageSchema = joi.object({
-        to: joi.string().min(1),
-        text: joi.string().min(1),
-        type: joi.valid('message', 'private_message')
+        toSanit: joi.string().min(1),
+        textSanit: joi.string().min(1),
+        typeSanit: joi.valid('message', 'private_message')
     })
     const validateMessage = messageSchema.validate(req.body, { abortEarly: false });
     if (validateMessage.error) {
