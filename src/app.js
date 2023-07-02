@@ -4,11 +4,13 @@ import { MongoClient, ObjectId } from "mongodb";
 import joi from "joi";
 import dayjs from 'dayjs';
 import dotenv from "dotenv";
+import { stripHtml } from "string-strip-html";
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 dotenv.config();
+
 
 const mongoClient = new MongoClient(process.env.DATABASE_URL);
 let db;
@@ -23,23 +25,23 @@ app.post("/participants", async (req, res) => {
         name: joi.string().min(1).required()
     })
     const validateParticipants = participantsSchema.validate(req.body, { abortEarly: false });
-
+    const userSanit = stripHtml(name).result;
     if (validateParticipants.error) {
         const errors = validateParticipants.error.details.map(detail => detail.message);
         return res.status(422).send(errors);
     }
 
     try {
-        const user = await db.collection("participants").findOne({ name: name });
+        const user = await db.collection("participants").findOne({ name: userSanit });
         if (user) {
             return res.sendStatus(409);
         }
         await db.collection("participants").insertOne({
-            name: name,
+            name: userSanit,
             lastStatus: Date.now()
         })
         await db.collection("messages").insertOne({
-            from: name,
+            from: userSanit,
             to: 'Todos',
             text: 'entra na sala...',
             type: 'status',
@@ -66,11 +68,15 @@ app.get("/participants", (req, res) => {
 app.post("/messages", async (req, res) => {
     const { user } = req.headers;
     const { to, text, type } = req.body;
+    const toSanit = stripHtml(to).result;
+    const textSanit = stripHtml(text).result;
+    const typeSanit = stripHtml(type).result;
     const messageSchema = joi.object({
         to: joi.string().min(1).required(),
         text: joi.string().min(1).required(),
         type: joi.valid('message', 'private_message').required()
     })
+    
     const validateMessage = messageSchema.validate(req.body, { abortEarly: false });
     if (validateMessage.error) {
         const errors = validateMessage.error.details.map(detail => detail.message);
@@ -83,9 +89,9 @@ app.post("/messages", async (req, res) => {
         }
         await db.collection("messages").insertOne({
             from: from.name,
-            to: to,
-            text: text,
-            type: type,
+            to: toSanit,
+            text: textSanit,
+            type: typeSanit,
             time: dayjs().format('HH:mm:ss')
         })
         res.sendStatus(201);
@@ -179,6 +185,9 @@ app.put("/messages/:id", async (req, res) => {
     const { user } = req.headers;
     const { id } = req.params;
     const { to, text, type } = req.body;
+    const toSanit = stripHtml(to).result;
+    const textSanit = stripHtml(text).result;
+    const typeSanit = stripHtml(type).result;
     const messageSchema = joi.object({
         to: joi.string().min(1),
         text: joi.string().min(1),
@@ -207,9 +216,9 @@ app.put("/messages/:id", async (req, res) => {
                 $set:
                 {
                     from: user,
-                    to,
-                    text,
-                    type,
+                    to: toSanit,
+                    text: textSanit,
+                    type: typeSanit,
                     time: dayjs().format('HH:mm:ss')
                 }
             })
