@@ -21,27 +21,27 @@ mongoClient.connect()
 
 app.post("/participants", async (req, res) => {
     const { name } = req.body;
-    const nameSanit = stripHtml(name).result;
     const participantsSchema = joi.object({
-        nameSanit: joi.string().min(1).required()
+        name: joi.string().min(1).required()
     })
-    const validateParticipants = participantsSchema.validate(nameSanit, { abortEarly: false });
-    
+    const validateParticipants = participantsSchema.validate(req.body, { abortEarly: false });
+    const userSanit = stripHtml(name).result;
     if (validateParticipants.error) {
         const errors = validateParticipants.error.details.map(detail => detail.message);
         return res.status(422).send(errors);
     }
+
     try {
-        const user = await db.collection("participants").findOne({ name: nameSanit });
+        const user = await db.collection("participants").findOne({ name: userSanit });
         if (user) {
             return res.sendStatus(409);
         }
         await db.collection("participants").insertOne({
-            name: nameSanit,
+            name: userSanit,
             lastStatus: Date.now()
         })
         await db.collection("messages").insertOne({
-            from: nameSanit,
+            from: userSanit,
             to: 'Todos',
             text: 'entra na sala...',
             type: 'status',
@@ -68,16 +68,15 @@ app.get("/participants", (req, res) => {
 app.post("/messages", async (req, res) => {
     const { user } = req.headers;
     const { to, text, type } = req.body;
+    const messageSchema = joi.object({
+        to: joi.string().min(1).required(),
+        text: joi.string().min(1).required(),
+        type: joi.valid('message', 'private_message').required()
+    })
     const toSanit = stripHtml(to).result;
     const textSanit = stripHtml(text).result;
     const typeSanit = stripHtml(type).result;
-    const messageSchema = joi.object({
-        toSanit: joi.string().min(1).required(),
-        textSanit: joi.string().min(1).required(),
-        typeSanit: joi.valid('message', 'private_message').required()
-    })
-    
-    const validateMessage = messageSchema.validate({toSanit, textSanit, typeSanit}, { abortEarly: false });
+    const validateMessage = messageSchema.validate(req.body, { abortEarly: false });
     if (validateMessage.error) {
         const errors = validateMessage.error.details.map(detail => detail.message);
         return res.status(422).send(errors);
@@ -89,9 +88,9 @@ app.post("/messages", async (req, res) => {
         }
         await db.collection("messages").insertOne({
             from: from.name,
-            to: toSanit,
-            text: textSanit,
-            type: typeSanit,
+            to: to,
+            text: text,
+            type: type,
             time: dayjs().format('HH:mm:ss')
         })
         res.sendStatus(201);
@@ -185,15 +184,12 @@ app.put("/messages/:id", async (req, res) => {
     const { user } = req.headers;
     const { id } = req.params;
     const { to, text, type } = req.body;
-    const toSanit = stripHtml(to).result;
-    const textSanit = stripHtml(text).result;
-    const typeSanit = stripHtml(type).result;
     const messageSchema = joi.object({
-        toSanit: joi.string().min(1),
-        textSanit: joi.string().min(1),
-        typeSanit: joi.valid('message', 'private_message')
+        to: joi.string().min(1),
+        text: joi.string().min(1),
+        type: joi.valid('message', 'private_message')
     })
-    const validateMessage = messageSchema.validate({toSanit, textSanit, typeSanit}, { abortEarly: false });
+    const validateMessage = messageSchema.validate(req.body, { abortEarly: false });
     if (validateMessage.error) {
         const errors = validateMessage.error.details.map(detail => detail.message);
         return res.status(422).send(errors);
@@ -216,9 +212,9 @@ app.put("/messages/:id", async (req, res) => {
                 $set:
                 {
                     from: user,
-                    to: toSanit,
-                    text: textSanit,
-                    type: typeSanit,
+                    to,
+                    text,
+                    type,
                     time: dayjs().format('HH:mm:ss')
                 }
             })
