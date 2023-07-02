@@ -62,9 +62,8 @@ app.get("/participants", (req, res) => {
         })
 })
 setInterval(async () => {
-    let status = Date.now() - 10000;
     let users = await db.collection("participants").find().toArray();
-    await db.collection("participants").deleteMany({ lastStatus: { $lt: status } });
+    await db.collection("participants").deleteMany({ lastStatus: { $lt: Date.now() - 10000 } });
     let deleteUser = await db.collection("participants").find().toArray();
 
     for (let j = 0; j < users.length; j++) {
@@ -78,7 +77,6 @@ setInterval(async () => {
             })
         }
     }
-    console.log(deleteUser);
 }, 15000);
 app.post("/messages", async (req, res) => {
     const { user } = req.headers;
