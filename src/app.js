@@ -161,13 +161,14 @@ app.delete("/messages/:id", async (req, res) => {
 
     try {
         const userRequest = await db.collection("messages").findOne({ _id: new ObjectId(id) });
-        if(userRequest.from !== user) {
-            return res.sendStatus(401);
-        }
-        const counter = await db.collection("messages").deleteOne({ _id: new ObjectId(id) });
-        if (counter.deletedCount === 0) {
+        if (!userRequest) {
             return res.sendStatus(404);
         }
+        if (userRequest.from !== user) {
+            return res.sendStatus(401);
+        }
+        await db.collection("messages").deleteOne({ _id: new ObjectId(id) });
+
         res.sendStatus(200);
     } catch (e) {
         res.status(500).send(e.message);
@@ -175,9 +176,9 @@ app.delete("/messages/:id", async (req, res) => {
 })
 
 app.put("/messages/:id", async (req, res) => {
-    const {user} = req.headers;
-    const {id} = req.params;
-    const {to, text, type} = req.body;
+    const { user } = req.headers;
+    const { id } = req.params;
+    const { to, text, type } = req.body;
     const messageSchema = joi.object({
         to: joi.string().min(1),
         text: joi.string().min(1),
@@ -189,21 +190,34 @@ app.put("/messages/:id", async (req, res) => {
         return res.status(422).send(errors);
     }
     try {
+        const from = await db.collection("participants").findOne({ name: user });
+        if (!from) {
+            return res.sendStatus(422);
+        }
         const userRequest = await db.collection("messages").findOne({ _id: new ObjectId(id) });
-        if(userRequest.from !== user) {
+        if (!userRequest) {
+            return res.sendStatus(404);
+        }
+        if (userRequest.from !== user) {
             return res.sendStatus(401);
         }
-        
-        await db.collection("messages").updateOne(
-            {_id: new ObjectId(id)},
+
+        const counter = await db.collection("messages").updateOne(
+            { _id: new ObjectId(id) },
             {
-            from: user,
-            to: to,
-            text: text,
-            type: type,
-            time: dayjs().format('HH:mm:ss')
-        })
-        res.sendStatus(201);
+                $set:
+                {
+                    from: user,
+                    to: to,
+                    text: text,
+                    type: type,
+                    time: dayjs().format('HH:mm:ss')
+                }
+            })
+        if (counter.matchedCount === 0) {
+            return res.sendStatus(404);
+        }
+        res.sendStatus(200);
     } catch (e) {
         res.status(500).send(e.message);
     }
