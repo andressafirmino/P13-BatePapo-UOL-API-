@@ -69,7 +69,7 @@ setInterval(async () => {
 
     for (let j = 0; j < users.length; j++) {
         if (!deleteUser.includes(users[j])) {
-            await db.collection("messages").insertOne({
+            db.collection("messages").insertOne({
                 from: users[j].name,
                 to: 'Todos',
                 text: 'sai na sala...',
