@@ -25,7 +25,7 @@ app.post("/participants", async (req, res) => {
     const participantsSchema = joi.object({
         nameSanit: joi.string().min(1).required()
     })
-    const validateParticipants = participantsSchema.validate(req.body, { abortEarly: false });
+    const validateParticipants = participantsSchema.validate(nameSanit, { abortEarly: false });
     
     if (validateParticipants.error) {
         const errors = validateParticipants.error.details.map(detail => detail.message);
@@ -77,7 +77,7 @@ app.post("/messages", async (req, res) => {
         typeSanit: joi.valid('message', 'private_message').required()
     })
     
-    const validateMessage = messageSchema.validate(req.body, { abortEarly: false });
+    const validateMessage = messageSchema.validate({toSanit, textSanit, typeSanit}, { abortEarly: false });
     if (validateMessage.error) {
         const errors = validateMessage.error.details.map(detail => detail.message);
         return res.status(422).send(errors);
@@ -193,7 +193,7 @@ app.put("/messages/:id", async (req, res) => {
         textSanit: joi.string().min(1),
         typeSanit: joi.valid('message', 'private_message')
     })
-    const validateMessage = messageSchema.validate(req.body, { abortEarly: false });
+    const validateMessage = messageSchema.validate({toSanit, textSanit, typeSanit}, { abortEarly: false });
     if (validateMessage.error) {
         const errors = validateMessage.error.details.map(detail => detail.message);
         return res.status(422).send(errors);
