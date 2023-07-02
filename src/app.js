@@ -71,7 +71,7 @@ setInterval(async () => {
             db.collection("messages").insertOne({
                 type: 'status',
                 from: users[j].name,                
-                text: 'sai na sala...'          
+                text: 'sai da sala...'          
             })
         }
     }
