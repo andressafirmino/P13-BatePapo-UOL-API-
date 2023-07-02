@@ -1,6 +1,6 @@
 import express from "express";
 import cors from "cors";
-import { MongoClient } from "mongodb";
+import { MongoClient, ObjectId } from "mongodb";
 import joi from "joi";
 import dayjs from 'dayjs';
 import dotenv from "dotenv";
@@ -51,6 +51,7 @@ app.post("/participants", async (req, res) => {
     }
 
 })
+
 app.get("/participants", (req, res) => {
 
     db.collection("participants").find().toArray()
@@ -61,23 +62,7 @@ app.get("/participants", (req, res) => {
             return res.status(500).send(error.message);
         })
 })
-setInterval(async () => {
-    let users = await db.collection("participants").find().toArray();
-    await db.collection("participants").deleteMany({ lastStatus: { $lt: Date.now() - 10000 } });
-    let deleteUser = await db.collection("participants").find().toArray();
 
-    for (let j = 0; j < users.length; j++) {
-        if (!deleteUser.includes(users[j])) {
-            db.collection("messages").insertOne({
-                from: users[j].name,
-                to: 'Todos',
-                text: 'sai da sala...',
-                type: 'status',
-                time: dayjs().format('HH:mm:ss')         
-            })
-        }
-    }
-}, 15000);
 app.post("/messages", async (req, res) => {
     const { user } = req.headers;
     const { to, text, type } = req.body;
@@ -152,6 +137,42 @@ app.post("/status", async (req, res) => {
     }
 })
 
+setInterval(async () => {
+    let users = await db.collection("participants").find().toArray();
+    await db.collection("participants").deleteMany({ lastStatus: { $lt: Date.now() - 10000 } });
+    let deleteUser = await db.collection("participants").find().toArray();
+
+    for (let j = 0; j < users.length; j++) {
+        if (!deleteUser.includes(users[j])) {
+            db.collection("messages").insertOne({
+                from: users[j].name,
+                to: 'Todos',
+                text: 'sai da sala...',
+                type: 'status',
+                time: dayjs().format('HH:mm:ss')
+            })
+        }
+    }
+}, 150000);
+
+app.delete("/messages/:id", async (req, res) => {
+    const { id } = req.params;
+    const { user } = req.headers;
+
+    try {
+        const userRequest = await db.collection("messages").findOne({ _id: new ObjectId(id) });
+        console.log(userRequest);
+        if(userRequest.from !== user) {
+            return res.sendStatus(401);
+        }
+        const counter = await db.collection("messages").deleteOne({ _id: new ObjectId(id) });
+        if (counter.deletedCount === 0) {
+            return res.sendStatus(404);
+        }
+    } catch (e) {
+        res.status(500).send(e.message);
+    }
+})
 
 
 const PORT = 5000;
