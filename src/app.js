@@ -153,7 +153,7 @@ setInterval(async () => {
             })
         }
     }
-}, 150000);
+}, 15000);
 
 app.delete("/messages/:id", async (req, res) => {
     const { id } = req.params;
@@ -201,22 +201,19 @@ app.put("/messages/:id", async (req, res) => {
         if (userRequest.from !== user) {
             return res.sendStatus(401);
         }
-
-        const counter = await db.collection("messages").updateOne(
+        await db.collection("messages").updateOne(
             { _id: new ObjectId(id) },
             {
                 $set:
                 {
                     from: user,
-                    to: to,
-                    text: text,
-                    type: type,
+                    to,
+                    text,
+                    type,
                     time: dayjs().format('HH:mm:ss')
                 }
             })
-        if (counter.matchedCount === 0) {
-            return res.sendStatus(404);
-        }
+        
         res.sendStatus(200);
     } catch (e) {
         res.status(500).send(e.message);
