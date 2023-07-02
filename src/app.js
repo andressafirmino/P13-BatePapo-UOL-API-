@@ -69,11 +69,9 @@ setInterval(async () => {
     for (let j = 0; j < users.length; j++) {
         if (!deleteUser.includes(users[j])) {
             db.collection("messages").insertOne({
-                from: users[j].name,
-                to: 'Todos',
-                text: 'sai na sala...',
                 type: 'status',
-                time: dayjs().format('HH:mm:ss')
+                from: users[j].name,                
+                text: 'sai na sala...'          
             })
         }
     }
