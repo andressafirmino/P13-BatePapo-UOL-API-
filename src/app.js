@@ -29,9 +29,7 @@ app.post("/participants", async (req, res) => {
         const errors = validateParticipants.error.details.map(detail => detail.message);
         return res.status(422).send(errors);
     }
-    console.log(name);
     const userSanit = stripHtml(name).result;
-    console.log(userSanit);
     try {
         const user = await db.collection("participants").findOne({ name: userSanit });
         if (user) {
@@ -89,9 +87,9 @@ app.post("/messages", async (req, res) => {
         }
         await db.collection("messages").insertOne({
             from: from.name,
-            to: to,
-            text: text,
-            type: type,
+            to: toSanit,
+            text: textSanit,
+            type: typeSanit,
             time: dayjs().format('HH:mm:ss')
         })
         res.sendStatus(201);
