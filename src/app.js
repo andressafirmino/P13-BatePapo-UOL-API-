@@ -25,12 +25,13 @@ app.post("/participants", async (req, res) => {
         name: joi.string().min(1).required()
     })
     const validateParticipants = participantsSchema.validate(req.body, { abortEarly: false });
-    const userSanit = stripHtml(name).result;
     if (validateParticipants.error) {
         const errors = validateParticipants.error.details.map(detail => detail.message);
         return res.status(422).send(errors);
     }
-
+    console.log(name);
+    const userSanit = stripHtml(name).result;
+    console.log(userSanit);
     try {
         const user = await db.collection("participants").findOne({ name: userSanit });
         if (user) {
@@ -72,15 +73,15 @@ app.post("/messages", async (req, res) => {
         to: joi.string().min(1).required(),
         text: joi.string().min(1).required(),
         type: joi.valid('message', 'private_message').required()
-    })
-    const toSanit = stripHtml(to).result;
-    const textSanit = stripHtml(text).result;
-    const typeSanit = stripHtml(type).result;
+    })    
     const validateMessage = messageSchema.validate(req.body, { abortEarly: false });
     if (validateMessage.error) {
         const errors = validateMessage.error.details.map(detail => detail.message);
         return res.status(422).send(errors);
     }
+    const toSanit = stripHtml(to).result;
+    const textSanit = stripHtml(text).result;
+    const typeSanit = stripHtml(type).result;
     try {
         const from = await db.collection("participants").findOne({ name: user });
         if (!from) {
